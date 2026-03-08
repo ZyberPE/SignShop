@@ -1,18 +1,18 @@
-shop-teleport:
+shop:
   world: "world"
   x: 100
   y: 65
   z: 100
 
-confirm-time: 30
+confirm-seconds: 30
 
 messages:
   teleport: "§aTeleporting to shop..."
   tap-confirm: "§eTap again to confirm."
-  confirm-expired: "§cConfirmation expired."
+  expired: "§cConfirmation expired."
   bought: "§aYou bought {amount} {item} for ${price}"
   sold: "§aYou sold {amount} {item} for ${price}"
-  no-money: "§cYou don't have enough money."
-  no-items: "§cYou don't have enough items."
+  not-enough-money: "§cYou don't have enough money."
+  not-enough-items: "§cYou don't have enough items."
   shop-created: "§aShop sign created."
   invalid-item: "§cInvalid item."
