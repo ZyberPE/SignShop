@@ -7,8 +7,8 @@ depend: [EconomyAPI]
 
 commands:
   shop:
-    description: Teleport to the shop world
-    usage: "/shop"
+    description: Teleport to shop
+    usage: /shop
     permission: signsell.shop
 
 permissions:
@@ -16,5 +16,4 @@ permissions:
     default: true
 
   signsell.create:
-    description: Allows creating shop signs
     default: op
