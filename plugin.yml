@@ -1,0 +1,20 @@
+name: SignSell
+main: SignSell\Main
+version: 1.0.0
+api: 5.0.0
+author: ZyberPE
+depend: [EconomyAPI]
+
+commands:
+  shop:
+    description: Teleport to the shop world
+    usage: "/shop"
+    permission: signsell.shop
+
+permissions:
+  signsell.shop:
+    default: true
+
+  signsell.create:
+    description: Allows creating shop signs
+    default: op
