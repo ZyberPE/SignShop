@@ -48,7 +48,7 @@ class Main extends PluginBase implements Listener{
             }
 
             $sender->teleport(new Position($cfg["x"], $cfg["y"], $cfg["z"], $world));
-            $sender->sendMessage($this->getConfig()->getNested("messages.teleport"));
+            $sender->sendMessage($this->getConfig()->getNested("messages.teleport") ?? "Teleporting...");
         }
 
         return true;
@@ -76,7 +76,7 @@ class Main extends PluginBase implements Listener{
         $item = StringToItemParser::getInstance()->parse($itemName);
 
         if($item === null){
-            $player->sendMessage($this->getConfig()->getNested("messages.invalid-item"));
+            $player->sendMessage($this->getConfig()->getNested("messages.invalid-item") ?? "Invalid item.");
             return;
         }
 
@@ -89,7 +89,7 @@ class Main extends PluginBase implements Listener{
             "$".$price
         ]));
 
-        $player->sendMessage($this->getConfig()->getNested("messages.shop-created"));
+        $player->sendMessage($this->getConfig()->getNested("messages.shop-created") ?? "Shop created.");
     }
 
     public function onInteract(PlayerInteractEvent $event): void{
@@ -116,7 +116,7 @@ class Main extends PluginBase implements Listener{
         $price = (int)str_replace("$","",$lines[3]);
 
         $playerName = $player->getName();
-        $pos = $block->getPosition()->asVector3()->__toString();
+        $pos = $block->getPosition()->__toString();
 
         if(!isset($this->confirm[$playerName]) || $this->confirm[$playerName]["pos"] !== $pos){
 
@@ -125,13 +125,13 @@ class Main extends PluginBase implements Listener{
                 "pos" => $pos
             ];
 
-            $player->sendMessage($this->getConfig()->getNested("messages.tap-confirm"));
+            $player->sendMessage($this->getConfig()->getNested("messages.tap-confirm") ?? "Tap again to confirm.");
             return;
         }
 
         if(time() - $this->confirm[$playerName]["time"] > $this->getConfig()->get("confirm-seconds")){
             unset($this->confirm[$playerName]);
-            $player->sendMessage($this->getConfig()->getNested("messages.expired"));
+            $player->sendMessage($this->getConfig()->getNested("messages.expired") ?? "Confirmation expired.");
             return;
         }
 
@@ -148,7 +148,7 @@ class Main extends PluginBase implements Listener{
         if($type === "§abuy"){
 
             if($economy->myMoney($player) < $price){
-                $player->sendMessage($this->getConfig()->getNested("messages.not-enough-money"));
+                $player->sendMessage($this->getConfig()->getNested("messages.not-enough-money") ?? "Not enough money.");
                 return;
             }
 
@@ -158,7 +158,7 @@ class Main extends PluginBase implements Listener{
             $msg = str_replace(
                 ["{amount}","{item}","{price}"],
                 [$amount,$itemName,$price],
-                $this->getConfig()->getNested("messages.bought")
+                $this->getConfig()->getNested("messages.bought") ?? "Purchase successful."
             );
 
             $player->sendMessage($msg);
@@ -167,7 +167,7 @@ class Main extends PluginBase implements Listener{
         if($type === "§asell"){
 
             if(!$player->getInventory()->contains($item)){
-                $player->sendMessage($this->getConfig()->getNested("messages.not-enough-items"));
+                $player->sendMessage($this->getConfig()->getNested("messages.not-enough-items") ?? "Not enough items.");
                 return;
             }
 
@@ -177,7 +177,7 @@ class Main extends PluginBase implements Listener{
             $msg = str_replace(
                 ["{amount}","{item}","{price}"],
                 [$amount,$itemName,$price],
-                $this->getConfig()->getNested("messages.sold")
+                $this->getConfig()->getNested("messages.sold") ?? "Sale successful."
             );
 
             $player->sendMessage($msg);
