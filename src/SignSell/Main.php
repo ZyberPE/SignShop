@@ -4,15 +4,21 @@ namespace SignSell;
 
 use pocketmine\plugin\PluginBase;
 use pocketmine\event\Listener;
+use pocketmine\player\Player;
+use pocketmine\Server;
+use pocketmine\world\Position;
+
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
-use pocketmine\player\Player;
-use pocketmine\world\Position;
-use pocketmine\Server;
+
 use pocketmine\event\block\SignChangeEvent;
 use pocketmine\event\player\PlayerInteractEvent;
+
 use pocketmine\block\tile\Sign;
+use pocketmine\block\utils\SignText;
+
 use pocketmine\item\StringToItemParser;
+
 use onebone\economyapi\EconomyAPI;
 
 class Main extends PluginBase implements Listener{
@@ -25,22 +31,26 @@ class Main extends PluginBase implements Listener{
     }
 
     public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool{
+
         if($command->getName() === "shop"){
-            if($sender instanceof Player){
 
-                $cfg = $this->getConfig()->get("shop-teleport");
-
-                $world = Server::getInstance()->getWorldManager()->getWorldByName($cfg["world"]);
-
-                if($world === null){
-                    $sender->sendMessage("§cWorld not found.");
-                    return true;
-                }
-
-                $sender->teleport(new Position($cfg["x"], $cfg["y"], $cfg["z"], $world));
-                $sender->sendMessage($this->getConfig()->get("messages")["teleport"]);
+            if(!$sender instanceof Player){
+                return true;
             }
+
+            $cfg = $this->getConfig()->get("shop");
+
+            $world = Server::getInstance()->getWorldManager()->getWorldByName($cfg["world"]);
+
+            if($world === null){
+                $sender->sendMessage("§cWorld not found.");
+                return true;
+            }
+
+            $sender->teleport(new Position($cfg["x"], $cfg["y"], $cfg["z"], $world));
+            $sender->sendMessage($this->getConfig()->getNested("messages.teleport"));
         }
+
         return true;
     }
 
@@ -52,66 +62,76 @@ class Main extends PluginBase implements Listener{
             return;
         }
 
-        $line1 = strtolower($event->getLine(0));
-        $item = strtolower($event->getLine(1));
-        $amount = (int)$event->getLine(2);
-        $price = (int)$event->getLine(3);
+        $text = $event->getNewText();
 
-        if($line1 !== "[buy]" && $line1 !== "[sell]"){
+        $type = strtolower($text->getLine(0));
+        $itemName = strtolower($text->getLine(1));
+        $amount = (int)$text->getLine(2);
+        $price = (int)$text->getLine(3);
+
+        if($type !== "[buy]" && $type !== "[sell]"){
             return;
         }
 
-        $parsed = StringToItemParser::getInstance()->parse($item);
+        $item = StringToItemParser::getInstance()->parse($itemName);
 
-        if($parsed === null){
-            $player->sendMessage($this->getConfig()->get("messages")["invalid-item"]);
+        if($item === null){
+            $player->sendMessage($this->getConfig()->getNested("messages.invalid-item"));
             return;
         }
 
-        $event->setLine(0, "§a" . strtoupper(str_replace(["[","]"], "", $line1)));
-        $event->setLine(1, $item);
-        $event->setLine(2, (string)$amount);
-        $event->setLine(3, "$" . $price);
+        $typeFormatted = strtoupper(str_replace(["[","]"], "", $type));
 
-        $player->sendMessage($this->getConfig()->get("messages")["shop-created"]);
+        $event->setNewText(new SignText([
+            "§a".$typeFormatted,
+            $itemName,
+            (string)$amount,
+            "$".$price
+        ]));
+
+        $player->sendMessage($this->getConfig()->getNested("messages.shop-created"));
     }
 
     public function onInteract(PlayerInteractEvent $event): void{
 
         $player = $event->getPlayer();
         $block = $event->getBlock();
+
         $tile = $player->getWorld()->getTile($block->getPosition());
 
         if(!$tile instanceof Sign){
             return;
         }
 
-        $text = $tile->getText()->getLines();
+        $lines = $tile->getText()->getLines();
 
-        $type = strtolower($text[0]);
-        $itemName = strtolower($text[1]);
-        $amount = (int)$text[2];
-        $price = (int)str_replace("$","",$text[3]);
+        $type = strtolower($lines[0]);
 
         if($type !== "§abuy" && $type !== "§asell"){
             return;
         }
 
-        $name = $player->getName();
+        $itemName = strtolower($lines[1]);
+        $amount = (int)$lines[2];
+        $price = (int)str_replace("$","",$lines[3]);
 
-        if(!isset($this->confirm[$name])){
-            $this->confirm[$name] = [
+        $playerName = $player->getName();
+        $pos = $block->getPosition()->asVector3()->__toString();
+
+        if(!isset($this->confirm[$playerName]) || $this->confirm[$playerName]["pos"] !== $pos){
+
+            $this->confirm[$playerName] = [
                 "time" => time(),
-                "pos" => $block->getPosition()
+                "pos" => $pos
             ];
 
-            $player->sendMessage($this->getConfig()->get("messages")["tap-confirm"]);
+            $player->sendMessage($this->getConfig()->getNested("messages.tap-confirm"));
             return;
         }
 
-        if(time() - $this->confirm[$name]["time"] > $this->getConfig()->get("confirm-time")){
-            unset($this->confirm[$name]);
-            $player->sendMessage($this->getConfig()->get("messages")["confirm-expired"]);
+        if(time() - $this->confirm[$playerName]["time"] > $this->getConfig()->get("confirm-seconds")){
+            unset($this->confirm[$playerName]);
+            $player->sendMessage($this->getConfig()->getNested("messages.expired"));
             return;
         }
 
@@ -128,7 +148,7 @@ class Main extends PluginBase implements Listener{
         if($type === "§abuy"){
 
             if($economy->myMoney($player) < $price){
-                $player->sendMessage($this->getConfig()->get("messages")["no-money"]);
+                $player->sendMessage($this->getConfig()->getNested("messages.not-enough-money"));
                 return;
             }
 
@@ -138,7 +158,7 @@ class Main extends PluginBase implements Listener{
             $msg = str_replace(
                 ["{amount}","{item}","{price}"],
                 [$amount,$itemName,$price],
-                $this->getConfig()->get("messages")["bought"]
+                $this->getConfig()->getNested("messages.bought")
             );
 
             $player->sendMessage($msg);
@@ -147,7 +167,7 @@ class Main extends PluginBase implements Listener{
         if($type === "§asell"){
 
             if(!$player->getInventory()->contains($item)){
-                $player->sendMessage($this->getConfig()->get("messages")["no-items"]);
+                $player->sendMessage($this->getConfig()->getNested("messages.not-enough-items"));
                 return;
             }
 
@@ -157,12 +177,12 @@ class Main extends PluginBase implements Listener{
             $msg = str_replace(
                 ["{amount}","{item}","{price}"],
                 [$amount,$itemName,$price],
-                $this->getConfig()->get("messages")["sold"]
+                $this->getConfig()->getNested("messages.sold")
             );
 
             $player->sendMessage($msg);
         }
 
-        unset($this->confirm[$name]);
+        unset($this->confirm[$playerName]);
     }
 }
